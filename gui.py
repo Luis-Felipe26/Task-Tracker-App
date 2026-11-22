@@ -1,136 +1,124 @@
-import tkinter as tk
-import tasks 
-from tkinter import ttk
 
-visible_tasks = []
+import tasks
+import customtkinter as ctk
+
+
+def refreshTasks():
+    status_names = {
+        'done': 'Done',
+        'todo': 'To Do',
+        'in-progress': 'In Progress'}
+
+    status_name_colors = {
+        'done': '#86EFAC',
+        'todo': '#FCD34D',
+        'in-progress': '#93C5FD'}
+
+    status_background_colors = {
+        'done': '#14532D',
+        'todo': '#713F12',
+        'in-progress': '#1E3A5F'}
+
+    for widget in task_frame.winfo_children():
+        widget.destroy()
+
+    for task in tasks.data['tasks']:
+        status_name = status_names[task['status']]
+        status_name_color = status_name_colors[task['status']]
+        status_background_color = status_background_colors[task['status']]
+
+        task_card = ctk.CTkFrame(
+            task_frame,
+            fg_color='gray22',
+            corner_radius=30,
+            height=60)
+        task_card.pack_propagate(False)
+        task_card.pack(fill='x', pady=2.5)
+
+        task_label = ctk.CTkLabel(
+            task_card,
+            text=task['description'],
+            fg_color='transparent')
+        task_label.pack(side=ctk.LEFT, padx=(10, 0), pady=5)
+
+        status_label = ctk.CTkLabel(
+            task_card,
+            text=status_name,
+            corner_radius=10,
+            fg_color=status_background_color,
+            text_color=status_name_color,
+            height=20)
+        status_label.pack(side=ctk.RIGHT, padx=(0, 10), pady=5)
+
 
 def readEntry():
     description = entry.get()
-    
+
     if not description.strip():
         print('Please provide a task.')
         return
-    
+
     tasks.add(description)
-    
-    
-    refreshListbox()
-    entry.delete(0, tk.END)
 
-def deleteTask():
-    selection = listbox.curselection()
+    refreshTasks()
+    entry.delete(0, ctk.END)
 
-    if not selection:
-        print('Please select a task.')
-        return
 
-    index = selection[0]
-    selected_task = visible_tasks[index]
-    task_id = selected_task['id']
-    tasks.delete(task_id)
-    
-    refreshListbox()
+ctk.set_appearance_mode('dark')
+ctk.set_default_color_theme('blue')
 
-def updateTask():
-    selection = listbox.curselection()
-    
-    if not selection:
-        print('Please select a task.')
-        return
-    
-    index = selection[0]
-    new_description = entry.get()
-    
-    if not new_description.strip():
-        print('Please provide the update.')
-        return
-    
-    selected_task = visible_tasks[index]
-    task_id = selected_task['id']
-    tasks.update(task_id, new_description)
-    
-    refreshListbox()
-    entry.delete(0, tk.END)
-
-def markStatus(new_status):
-    selection = listbox.curselection()
-    
-    if not selection:
-        print('Please select a task.')
-        return
-    
-    index = selection[0]
-    
-    selected_task = visible_tasks[index]
-    task_id = selected_task['id']
-    tasks.mark_status(task_id, new_status)
-    
-    refreshListbox()
-
-def refreshListbox():
-    global visible_tasks
-    
-    selected_filter = filter_box.get()
-    
-    status_map ={
-        'To Do': 'todo',
-        'In Progress': 'in-progress',
-        'Done': 'done'    
-    }
-    
-    if selected_filter == 'All':
-        visible_tasks = tasks.data['tasks']
-    else:
-        visible_tasks = []
-        selected_status = status_map[selected_filter]
-        
-        for task in tasks.data['tasks']:
-            if task['status'] == selected_status:
-                visible_tasks.append(task)
-    
-    listbox.delete(0, tk.END)
-    for task in visible_tasks:
-        listbox.insert(tk.END, f"{task['description']}   ({task['status']})")
-
-def onFilterChange(event):
-    refreshListbox()
-
-root = tk.Tk()
+root = ctk.CTk()
 root.title('Task Tracker')
-root.geometry("800x500")
+root.geometry('800x500')
 root.resizable(False, False)
 
-label = tk.Label(root, text="My Tasks", font=("Arial", 26, "bold"))
-label.pack(pady=20)
-entry = tk.Entry(root, width=60)
-entry.pack()
-button1 = tk.Button(root, text="Add Task", command=readEntry)
-button1.pack(pady=5)
-
-filter_box = ttk.Combobox(
+main_frame = ctk.CTkFrame(
     root,
-    values =['All', 'To Do', 'In Progress', 'Done'],
-    state= 'readonly'
-)
-filter_box.bind('<<ComboboxSelected>>', onFilterChange)
-filter_box.current(0)
-filter_box.pack(pady=5)
+    corner_radius=15)
+main_frame.pack(
+    padx=20,
+    pady=20,
+    fill='both',
+    expand=True)
 
-listbox = tk.Listbox(root,width= 100)
-listbox.pack(pady=5)
+label1 = ctk.CTkLabel(
+    main_frame,
+    text='My Tasks',
+    font=('Arial', 36, 'bold'))
+label1.pack(pady=10, padx=10, anchor='n')
 
-button2 = tk.Button(root, text="Delete Task", command=deleteTask)
-button2.pack(pady=5)
-button3 = tk.Button(root, text="Update Task", command=updateTask)
-button3.pack(pady=5)
+entry_frame = ctk.CTkFrame(
+    main_frame,
+    fg_color='transparent')
+entry_frame.pack()
 
-button_frame = tk.Frame(root)
-button_frame.pack(pady=5)
-button4 = tk.Button(button_frame, text="Mark as Done", command=lambda: markStatus('done'))
-button4.pack(side=tk.LEFT, padx=5)
-button5 = tk.Button(button_frame, text="Mark as In Progress", command=lambda: markStatus('in-progress'))
-button5.pack(side=tk.RIGHT, padx=5)
+entry = ctk.CTkEntry(
+    entry_frame,
+    width=400,
+    height=30,
+    corner_radius=15)
+entry.pack(
+    side='left',
+    fill='x',
+    expand=True,
+    padx=(0, 10),
+    pady=30)
 
-refreshListbox()
+button1 = ctk.CTkButton(
+    entry_frame,
+    text='Add Task',
+    width=40,
+    height=30,
+    corner_radius=15,
+    command=readEntry)
+button1.pack(side=ctk.RIGHT)
+
+task_frame = ctk.CTkScrollableFrame(
+    main_frame,
+    corner_radius=15,
+    fg_color='transparent')
+task_frame.pack(fill='both', expand=True, padx=20)
+
+refreshTasks()
 
 root.mainloop()
