@@ -1,8 +1,10 @@
 import tasks
 import customtkinter as ctk
 from safe_tooltip import SafeToolTip
+from PIL import Image
 
 current_filter = 'all'
+edit_buttons = []
 
 def refreshTasks():
     status_names = {
@@ -22,6 +24,7 @@ def refreshTasks():
 
     for widget in task_frame.winfo_children():
         widget.destroy()
+    edit_buttons.clear()
 
     for task in tasks.data['tasks']:
         if current_filter != 'all' and task['status'] != current_filter:
@@ -80,6 +83,23 @@ def refreshTasks():
                 command= lambda task_id=task['id'], new_status='done': changeStatus(task_id, new_status))
             button_done.pack(side=ctk.RIGHT, pady=5, padx=2.5)
             tooltip_done = SafeToolTip(button_done, message="Mark as Done", delay=0.3)
+            
+            button_edit = ctk.CTkButton(
+                task_card,
+                image=edit_icon,
+                text='',
+                text_color='gray',
+                fg_color='transparent',
+                hover_color='gray25',
+                corner_radius=10,
+                width=10,
+                height=20)
+            button_edit.pack(side=ctk.LEFT, pady=5, padx=2.5)
+            button_edit.configure(
+                command=lambda task_id=task['id'],description=task['description'],card=task_card,label=task_label,button=button_edit: startEditing(task_id, description, card, label, button))
+            button_edit.pack(side=ctk.LEFT, padx=5)
+            edit_buttons.append(button_edit)
+            tooltip_edit = SafeToolTip(button_edit, message="Edit Task", delay=0.3)
         
         if task['status'] == 'todo':
             button_inProgress = ctk.CTkButton(
@@ -141,18 +161,88 @@ def changeFilter(new_filter):
     refreshTasks()
 
 def updateFilterButtons():
+    border_colors = {
+        'all': '#6B7280',
+        'todo': '#A16207',
+        'in-progress': '#2563EB',
+        'done': '#16A34A'}
+    border_color = border_colors[current_filter]
+    
     for filter_name, button in filter_buttons.items():
         if filter_name == current_filter:
             button.configure(
                 border_width=2,
-                border_color=button.cget('text_color'),
+                border_color=border_color,
                 text_color_disabled=button.cget('text_color'),
                 state='disabled')
         else:
             button.configure(
                 border_width=0,
                 state='normal')
-            
+
+edit_icon = ctk.CTkImage(
+    light_image=Image.open('assets/edit.png'),
+    size=(16, 16))
+
+def editTask(task_id, new_description):
+    tasks.update(task_id, new_description)
+    
+    refreshTasks()
+    
+def startEditing(task_id, current_description, task_card, task_label, button_edit):
+    if not task_label.winfo_ismapped():
+        return
+    
+    widgets = task_card.pack_slaves()
+    next_widget = widgets[widgets.index(task_label) + 1]
+    task_label.pack_forget()
+    button_edit.pack_forget()
+    
+    for button in edit_buttons:
+        button.configure(state='disabled')
+
+    edit_entry = ctk.CTkEntry(
+        task_card,
+        height=30,
+        corner_radius=15,
+        fg_color='gray25',
+        border_width=1,
+        border_color='gray40',
+        width=350)
+
+    edit_entry.pack(
+        side=ctk.LEFT,
+        padx=(10, 5),
+        pady=5,
+        before=next_widget)
+
+    edit_entry.insert(0, current_description)
+    edit_entry.focus_set()
+    edit_entry.icursor(ctk.END)
+    
+    def confirmEdit():
+        new_description = edit_entry.get().strip()
+
+        if not new_description:
+            return
+
+        editTask(task_id, new_description)
+    
+    edit_entry.bind('<Return>', lambda event: confirmEdit())
+    edit_entry.bind('<Escape>', lambda event: refreshTasks())
+    
+    button_confirm = ctk.CTkButton(
+        task_card,
+        text='✔',
+        text_color='#86EFAC',
+        fg_color='transparent',
+        hover_color='gray25',
+        corner_radius=10,
+        width=10,
+        height=20,
+        command=confirmEdit)
+    button_confirm.pack(side=ctk.LEFT, padx=5)
+    
 ctk.set_appearance_mode('dark')
 ctk.set_default_color_theme('blue')
 
@@ -164,11 +254,7 @@ root.resizable(False, False)
 main_frame = ctk.CTkFrame(
     root,
     corner_radius=15)
-main_frame.pack(
-    padx=20,
-    pady=20,
-    fill='both',
-    expand=True)
+main_frame.pack(padx=20,pady=20,fill='both',expand=True)
 
 label1 = ctk.CTkLabel(
     main_frame,
@@ -192,6 +278,7 @@ entry.pack(
     expand=True,
     padx=(0, 10),
     pady=(15,0))
+entry.bind('<Return>', lambda event: readEntry())
 
 button_add = ctk.CTkButton(
     entry_frame,

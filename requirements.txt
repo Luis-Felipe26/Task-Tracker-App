@@ -1,2 +1,3 @@
 customtkinter
 CTkToolTip==0.9
+Pillow
