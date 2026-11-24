@@ -2,6 +2,8 @@ import tasks
 import customtkinter as ctk
 from safe_tooltip import SafeToolTip
 
+current_filter = 'all'
+
 def refreshTasks():
     status_names = {
         'done': 'Done',
@@ -22,6 +24,9 @@ def refreshTasks():
         widget.destroy()
 
     for task in tasks.data['tasks']:
+        if current_filter != 'all' and task['status'] != current_filter:
+            continue
+        
         status_name = status_names[task['status']]
         status_name_color = status_name_colors[task['status']]
         status_background_color = status_background_colors[task['status']]
@@ -128,6 +133,26 @@ def changeStatus(task_id, new_status):
     
     refreshTasks()
 
+def changeFilter(new_filter):
+    global current_filter
+    current_filter = new_filter
+
+    updateFilterButtons()
+    refreshTasks()
+
+def updateFilterButtons():
+    for filter_name, button in filter_buttons.items():
+        if filter_name == current_filter:
+            button.configure(
+                border_width=2,
+                border_color=button.cget('text_color'),
+                text_color_disabled=button.cget('text_color'),
+                state='disabled')
+        else:
+            button.configure(
+                border_width=0,
+                state='normal')
+            
 ctk.set_appearance_mode('dark')
 ctk.set_default_color_theme('blue')
 
@@ -149,12 +174,12 @@ label1 = ctk.CTkLabel(
     main_frame,
     text='My Tasks',
     font=('Arial', 36, 'bold'))
-label1.pack(pady=10, padx=10, anchor='n')
+label1.pack(pady=(10,0), padx=10, anchor='n')
 
 entry_frame = ctk.CTkFrame(
     main_frame,
     fg_color='transparent')
-entry_frame.pack()
+entry_frame.pack(pady=(10,0))
 
 entry = ctk.CTkEntry(
     entry_frame,
@@ -166,16 +191,78 @@ entry.pack(
     fill='x',
     expand=True,
     padx=(0, 10),
-    pady=30)
+    pady=(15,0))
 
-button1 = ctk.CTkButton(
+button_add = ctk.CTkButton(
     entry_frame,
     text='Add Task',
     width=40,
     height=30,
     corner_radius=15,
     command=readEntry)
-button1.pack(side=ctk.RIGHT)
+button_add.pack(side=ctk.RIGHT, pady=(15,0))
+
+filter_frame = ctk.CTkFrame(
+    main_frame,
+    height=60,
+    corner_radius=20,
+    fg_color='transparent')
+filter_frame.pack(fill='x', pady=(30,0), padx=20)
+
+button_all = ctk.CTkButton(
+    filter_frame,
+    text='All',
+    corner_radius=20,
+    height=30,
+    width=170,
+    fg_color='gray25',
+    text_color='#F9FAFB',
+    hover_color='#4B5563',
+    command= lambda: changeFilter('all'))
+button_all.pack(side=ctk.LEFT, padx=(18,0))
+
+button_todo = ctk.CTkButton(
+    filter_frame,
+    text='To Do',
+    corner_radius=20,
+    height=30,
+    width=170,
+    fg_color='#713F12',
+    text_color='#FCD34D',
+    hover_color='#854D0E',
+    command= lambda: changeFilter('todo'))
+button_todo.pack(side=ctk.LEFT)
+
+button_inProgress = ctk.CTkButton(
+    filter_frame,
+    text='In Progress',
+    corner_radius=20,
+    height=30,
+    width=170,
+    fg_color='#1E3A5F',
+    text_color='#93C5FD',
+    hover_color='#1D4E80',
+    command= lambda: changeFilter('in-progress'))
+button_inProgress.pack(side=ctk.LEFT)
+
+button_done = ctk.CTkButton(
+    filter_frame,
+    text='Done',
+    corner_radius=20,
+    height=30,
+    width=170,
+    fg_color='#14532D',
+    text_color='#86EFAC',
+    hover_color='#166534',
+    command= lambda: changeFilter('done'))
+button_done.pack(side=ctk.LEFT, padx=(0,18))
+
+filter_buttons = {
+    'all': button_all,
+    'todo': button_todo,
+    'in-progress': button_inProgress,
+    'done': button_done
+}
 
 task_frame = ctk.CTkScrollableFrame(
     main_frame,
@@ -183,6 +270,7 @@ task_frame = ctk.CTkScrollableFrame(
     fg_color='transparent')
 task_frame.pack(fill='both', expand=True, padx=20)
 
+updateFilterButtons()
 refreshTasks()
 
 root.mainloop()
